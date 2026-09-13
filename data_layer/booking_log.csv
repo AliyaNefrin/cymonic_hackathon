@@ -1,2 +1,3 @@
 slot_id,decision,discount_pct,reasoning,segment_notified,source,timestamp
 S1002,notify_small_discount,15.0,Low historical fill rate; Good margin room,SEG_04,rule_based_fallback,2026-09-13T12:17:49.012520
+S1002,notify_small_discount,15.0,Low historical fill rate (0.24); Short lead time (6h); Ample margin room (45%),SEG_04,rule_based_fallback,2026-09-13T13:00:31.625921
