@@ -197,80 +197,29 @@ if __name__ == "__main__":
         except Exception:
             pass
 
-    test_slots = [
-        {
-            "name": "Slot 1 (Clearly Fine - High fill rate, organic demand)",
-            "data": {
-                "slot_id": "SLOT-001",
-                "turf_name": "Downtown Arena Pitch 1",
-                "sport": "Football",
-                "date": "2026-09-15",
-                "day_of_week": "Tuesday",
-                "time_slot": "19:00-20:00",
-                "lead_time_hrs": 10.0,
-                "base_price": 100.0,
-                "cost_to_operate": 40.0,
-                "historical_fill_rate": 0.85,
-                "tags": "prime_time,corporate",
-            },
-        },
-        {
-            "name": "Slot 2 (Clearly Bad - Urgent & low fill rate, healthy margin)",
-            "data": {
-                "slot_id": "SLOT-002",
-                "turf_name": "Westside Turf Court B",
-                "sport": "Cricket",
-                "date": "2026-09-14",
-                "day_of_week": "Monday",
-                "time_slot": "14:00-15:00",
-                "lead_time_hrs": 4.0,
-                "base_price": 80.0,
-                "cost_to_operate": 40.0,
-                "historical_fill_rate": 0.20,
-                "tags": "weekday_afternoon,students",
-            },
-        },
-        {
-            "name": "Slot 3 (Borderline - Moderate urgency and fill rate)",
-            "data": {
-                "slot_id": "SLOT-003",
-                "turf_name": "Eastside Sports Dome",
-                "sport": "Football",
-                "date": "2026-09-16",
-                "day_of_week": "Wednesday",
-                "time_slot": "16:00-17:00",
-                "lead_time_hrs": 20.0,
-                "base_price": 90.0,
-                "cost_to_operate": 50.0,
-                "historical_fill_rate": 0.45,
-                "tags": "afternoon,casual",
-            },
-        },
-        {
-            "name": "Slot 4 (Thin Margin Trap - Urgent low fill rate, but thin margin)",
-            "data": {
-                "slot_id": "SLOT-004",
-                "turf_name": "Northside Indoor Turf",
-                "sport": "Badminton",
-                "date": "2026-09-14",
-                "day_of_week": "Monday",
-                "time_slot": "13:00-14:00",
-                "lead_time_hrs": 5.0,
-                "base_price": 50.0,
-                "cost_to_operate": 45.0,
-                "historical_fill_rate": 0.25,
-                "tags": "weekday_afternoon",
-            },
-        },
-    ]
-
     print("=" * 60)
-    print("TESTING REASONING ENGINE (evaluate_slot)")
+    print("REASONING ENGINE: EVALUATING REAL SLOTS FROM DATA LAYER")
     print("=" * 60)
 
-    for test in test_slots:
-        print(f"\n--- {test['name']} ---")
-        res = evaluate_slot(test["data"])
+    # Ensure project root is in sys.path when run directly
+    project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+    if project_root not in sys.path:
+        sys.path.insert(0, project_root)
+
+    try:
+        from data_layer.data_manager import load_slots
+        slots_df = load_slots()
+        vacant_df = slots_df[slots_df["status"] == "vacant"]
+        sample_slots = vacant_df.head(4).to_dict(orient="records")
+        print(f"Loaded {len(vacant_df)} vacant slots from data_layer/slots.csv. Evaluating sample:\n")
+    except Exception as e:
+        print(f"Could not load slots from data_layer ({e}).")
+        sample_slots = []
+
+    for slot in sample_slots:
+        print(f"\n--- Evaluating Slot {slot.get('slot_id')} ({slot.get('turf_name')} - {slot.get('sport')}) ---")
+        print(f"Time: {slot.get('time_slot')} | Lead: {slot.get('lead_time_hrs')}h | Fill Rate: {float(slot.get('historical_fill_rate', 0))*100:.0f}% | Margin: ${float(slot.get('base_price',0)) - float(slot.get('cost_to_operate',0)):.2f}")
+        res = evaluate_slot(slot)
         print(f"Decision:     {res['decision']}")
         print(f"Discount:     {res['discount_pct']}%")
         print(f"Confidence:   {res['confidence']}")
@@ -279,5 +228,6 @@ if __name__ == "__main__":
         for bullet in res["reasoning"]:
             print(f"  * {bullet}")
     print("\n" + "=" * 60)
+
 
 

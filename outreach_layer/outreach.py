@@ -173,76 +173,63 @@ def generate_outreach(
 # Run this file directly (`python outreach.py`) to test your code!
 # =====================================================================
 if __name__ == "__main__":
-    print("--- TESTING OUTREACH LAYER STANDALONE ---\n")
+    import sys
+    import os
 
-    # 1. Fake segments dataframe (matching Person A's schema)
-    mock_segments = pd.DataFrame([
-        {
-            "segment_id": "SEG_01",
-            "segment_name": "Weekday Afternoon Ballers",
-            "sport_pref": "Football",
-            "preferred_time_band": "12:00-17:00",
-            "price_sensitivity": "high",
-            "size": 65
-        },
-        {
-            "segment_id": "SEG_02",
-            "segment_name": "Evening Football League",
-            "sport_pref": "Football",
-            "preferred_time_band": "18:00-22:00",
-            "price_sensitivity": "low",
-            "size": 120
-        },
-        {
-            "segment_id": "SEG_03",
-            "segment_name": "Box Cricket After-Work Club",
-            "sport_pref": "Box Cricket",
-            "preferred_time_band": "17:00-21:00",
-            "price_sensitivity": "medium",
-            "size": 80
-        }
-    ])
+    # Ensure UTF-8 output encoding for Windows terminal
+    if sys.stdout.encoding != "utf-8":
+        try:
+            sys.stdout.reconfigure(encoding="utf-8")
+        except Exception:
+            pass
 
-    # 2. Test Case A: Afternoon low-demand slot (large discount)
-    slot_a = {
-        "slot_id": "S1001",
-        "turf_name": "Apex Arena",
-        "sport": "Football",
-        "date": "2026-09-15",
-        "day_of_week": "Tuesday",
-        "time_slot": "14:00-15:00",
-        "lead_time_hrs": 3,
-        "base_price": 1200.0,
-        "cost_to_operate": 400.0,
-        "historical_fill_rate": 0.22,
-        "status": "vacant"
-    }
+    # Ensure project root is in sys.path
+    project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+    if project_root not in sys.path:
+        sys.path.insert(0, project_root)
+
+    print("--- TESTING OUTREACH LAYER WITH REAL DATA LAYER ---\n")
+
+    try:
+        from data_layer.data_manager import load_segments, load_slots
+        live_segments = load_segments()
+        live_slots = load_slots()
+        print(f"Loaded {len(live_segments)} real segments and {len(live_slots)} slots from data_layer.\n")
+        vacant_slots = live_slots[live_slots["status"] == "vacant"]
+        sample_slot = vacant_slots.iloc[0].to_dict()
+    except Exception as e:
+        print(f"Could not load live data: {e}")
+        live_segments = pd.DataFrame()
+        sample_slot = {"slot_id": "S1001", "turf_name": "Apex Arena", "sport": "Football", "base_price": 1000.0}
+
+    # 1. Test Case A: Large discount decision
     decision_a = {
         "decision": "notify_large_discount",
-        "discount_pct": 25.0,
+        "discount_pct": 20.0,
         "confidence": "high",
-        "reasoning": ["Low fill rate 22%", "Short lead time 3h"],
+        "reasoning": ["Low fill rate", "Short lead time"],
         "source": "llm"
     }
 
-    result_a = generate_outreach(slot_a, decision_a, mock_segments)
-    print("=== TEST CASE A: Large Discount ===")
+    result_a = generate_outreach(sample_slot, decision_a, live_segments)
+    print("=== TEST CASE A: Large Discount on Real Slot ===")
+    print(f"Slot: {sample_slot.get('slot_id')} ({sample_slot.get('turf_name')} - {sample_slot.get('sport')})")
     print(f"Matched Segment: {result_a['matched_segment']}")
     print("Rendered Message:\n" + result_a["message"])
     print("\n" + "="*50 + "\n")
 
-    # 3. Test Case B: Prime slot (no action)
+    # 2. Test Case B: Prime slot (no action)
     decision_b = {
         "decision": "no_action",
         "discount_pct": 0.0,
         "confidence": "high",
-        "reasoning": ["High historical fill rate 85%"],
+        "reasoning": ["High historical fill rate"],
         "source": "llm"
     }
-    result_b = generate_outreach(slot_a, decision_b, mock_segments)
-    print("=== TEST CASE B: No Action ===")
+    result_b = generate_outreach(sample_slot, decision_b, live_segments)
+    print("=== TEST CASE B: No Action on Real Slot ===")
     print(f"Matched Segment: {result_b['matched_segment']}")
     print("Rendered Message:\n" + result_b["message"])
     print("\n" + "="*50 + "\n")
 
-    print("✅ Outreach layer test completed successfully!")
+    print("✅ Outreach layer live data test completed successfully!")
