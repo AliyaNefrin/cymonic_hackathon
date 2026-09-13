@@ -1,0 +1,8 @@
+segment_id,segment_name,sport_pref,preferred_time_band,price_sensitivity,size
+SEG_01,Football Weekday Regulars,Football,17:00-20:00,medium,65
+SEG_02,Weekend Football Players,Football,18:00-22:00,low,90
+SEG_03,Cricket Afternoon Groups,Cricket,12:00-17:00,high,40
+SEG_04,Price Sensitive Players,Football,12:00-17:00,high,75
+SEG_05,Evening Sports Regulars,Basketball,17:00-20:00,medium,45
+SEG_06,Badminton Midday Smashers,Badminton,12:00-17:00,high,35
+SEG_07,Weekend Prime Cricket,Cricket,17:00-22:00,low,55
