@@ -1,15 +1,18 @@
 """
 data_manager.py
 Data handling and persistence layer for the Sports Lot Optimiser project.
+Part of the Data Layer (Person A).
 """
 
 from pathlib import Path
-from typing import Dict, Any, List
+from typing import Dict, Any
 import pandas as pd
 
-# Directory relative to this module
-BASE_DIR = Path(__file__).parent.resolve()
-DATA_DIR = BASE_DIR / "data"
+# Directory where this file and the CSVs reside
+DATA_DIR = Path(__file__).parent.resolve()
+SLOTS_FILE = DATA_DIR / "slots.csv"
+SEGMENTS_FILE = DATA_DIR / "customer_segments.csv"
+BOOKING_LOG_FILE = DATA_DIR / "booking_log.csv"
 
 VALID_STATUSES = {"vacant", "booked"}
 LOG_COLUMNS = [
@@ -23,48 +26,26 @@ LOG_COLUMNS = [
 ]
 
 
-def _get_target_paths(filename: str) -> List[Path]:
-    """Returns all existing/intended target paths for a CSV file (data/ and project root)."""
-    paths = []
-    # Primary data directory path
-    data_path = DATA_DIR / filename
-    paths.append(data_path)
-    
-    # Root directory path
-    root_path = BASE_DIR / filename
-    if root_path != data_path:
-        paths.append(root_path)
-    return paths
-
-
-def _find_read_path(filename: str) -> Path:
-    """Finds the path to read a CSV file from, checking data/ first then project root."""
-    data_path = DATA_DIR / filename
-    if data_path.exists():
-        return data_path
-    root_path = BASE_DIR / filename
-    if root_path.exists():
-        return root_path
-    raise FileNotFoundError(
-        f"'{filename}' was not found in '{DATA_DIR}' or '{BASE_DIR}'. "
-        "Please run generate_dataset.py first."
-    )
-
-
 def load_slots() -> pd.DataFrame:
     """
     Loads and returns slots.csv as a pandas DataFrame.
     """
-    file_path = _find_read_path("slots.csv")
-    return pd.read_csv(file_path)
+    if not SLOTS_FILE.exists():
+        raise FileNotFoundError(
+            f"slots.csv not found at {SLOTS_FILE}. Please run generate_dataset.py first."
+        )
+    return pd.read_csv(SLOTS_FILE)
 
 
 def load_segments() -> pd.DataFrame:
     """
     Loads and returns customer_segments.csv as a pandas DataFrame.
     """
-    file_path = _find_read_path("customer_segments.csv")
-    return pd.read_csv(file_path)
+    if not SEGMENTS_FILE.exists():
+        raise FileNotFoundError(
+            f"customer_segments.csv not found at {SEGMENTS_FILE}. Please run generate_dataset.py first."
+        )
+    return pd.read_csv(SEGMENTS_FILE)
 
 
 def update_slot_status(slot_id: str, new_status: str) -> None:
@@ -87,12 +68,7 @@ def update_slot_status(slot_id: str, new_status: str) -> None:
         raise ValueError(f"Slot ID '{slot_id}' not found in slots.csv")
 
     slots_df.loc[slot_mask, "status"] = new_status
-
-    # Save to all target locations (data/ and root) to keep them synchronized
-    target_paths = _get_target_paths("slots.csv")
-    for path in target_paths:
-        path.parent.mkdir(parents=True, exist_ok=True)
-        slots_df.to_csv(path, index=False)
+    slots_df.to_csv(SLOTS_FILE, index=False)
 
 
 def append_to_log(log_row_dict: Dict[str, Any]) -> None:
@@ -114,9 +90,5 @@ def append_to_log(log_row_dict: Dict[str, Any]) -> None:
     row_data = {col: formatted_dict.get(col, "") for col in LOG_COLUMNS}
     new_row_df = pd.DataFrame([row_data])
 
-    # Append to all target locations (data/ and root)
-    target_paths = _get_target_paths("booking_log.csv")
-    for path in target_paths:
-        path.parent.mkdir(parents=True, exist_ok=True)
-        write_header = not path.exists() or path.stat().st_size == 0
-        new_row_df.to_csv(path, mode="a", header=write_header, index=False)
+    write_header = not BOOKING_LOG_FILE.exists() or BOOKING_LOG_FILE.stat().st_size == 0
+    new_row_df.to_csv(BOOKING_LOG_FILE, mode="a", header=write_header, index=False)

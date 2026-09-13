@@ -1,10 +1,12 @@
 """
 generate_dataset.py
 Generates synthetic but realistic turf-booking data for the Sports Lot Optimiser.
+Part of the Data Layer (Person A).
 
 Outputs:
-1. slots.csv (in both data/ and project root)
-2. customer_segments.csv (in both data/ and project root)
+1. slots.csv (in data_layer/)
+2. customer_segments.csv (in data_layer/)
+3. booking_log.csv (in data_layer/)
 """
 
 import os
@@ -19,8 +21,7 @@ RANDOM_SEED = 42
 random.seed(RANDOM_SEED)
 np.random.seed(RANDOM_SEED)
 
-BASE_DIR = Path(__file__).parent.resolve()
-DATA_DIR = BASE_DIR / "data"
+DATA_DIR = Path(__file__).parent.resolve()
 
 TURFS = [
     {"name": "Apex Arena", "sports": ["Football", "Cricket"]},
@@ -65,7 +66,6 @@ def generate_slots():
     slots = []
     slot_counter = 1001
 
-    # We want approximately 160-190 slots total across 14 days and 3 turfs
     for day_offset in range(NUM_DAYS):
         current_date = START_DATE + timedelta(days=day_offset)
         day_of_week = current_date.strftime("%A")
@@ -73,12 +73,10 @@ def generate_slots():
         
         daily_time_slots = TIME_SLOTS_WEEKEND if is_weekend else TIME_SLOTS_WEEKDAY
         
-        # For each day, generate slots across the 3 turfs
         for turf in TURFS:
             turf_name = turf["name"]
             available_sports = turf["sports"]
             
-            # Select 4 slots per turf per day on weekdays, 5 on weekends
             slots_to_schedule = 4 if not is_weekend else 5
             selected_times = sorted(
                 random.sample(daily_time_slots, min(slots_to_schedule, len(daily_time_slots)))
@@ -88,35 +86,26 @@ def generate_slots():
                 sport = random.choice(available_sports)
                 pricing = SPORT_PRICING[sport]
                 
-                # Base price rounded to nearest 50
                 raw_price = random.randint(pricing["base_min"], pricing["base_max"])
                 base_price = float(round(raw_price / 50) * 50)
                 
-                # Operating cost is strictly lower than base price
                 cost_ratio = random.uniform(*pricing["cost_ratio"])
                 cost_to_operate = float(round((base_price * cost_ratio) / 10) * 10)
                 
-                # Lead time in hours (realistic between 4 and 72 hours)
                 lead_time_hrs = int(random.choice([4, 6, 8, 12, 18, 24, 36, 48, 72]))
                 
-                # Determine demand patterns
                 is_afternoon = time_slot in AFTERNOON_HOURS
                 is_evening = time_slot in EVENING_HOURS
                 
                 if not is_weekend and is_afternoon:
-                    # Weekday afternoon: Low historical fill rate (0.15 - 0.45)
                     historical_fill_rate = round(float(np.clip(np.random.normal(0.28, 0.07), 0.15, 0.45)), 2)
                     tags = "weekday, low-demand, afternoon, low-fill"
-                    # Mostly vacant to provide plenty of test candidates for optimiser (~80% vacant)
                     status = "vacant" if random.random() < 0.80 else "booked"
                 elif is_evening or is_weekend:
-                    # Weekday evening or Weekend: High historical fill rate (0.65 - 0.95)
                     historical_fill_rate = round(float(np.clip(np.random.normal(0.80, 0.08), 0.65, 0.95)), 2)
                     tags = "weekend, high-demand" if is_weekend else "weekday, peak"
-                    # Mostly booked, but ~20% vacant so optimizer can test high-fill vacant cases (no_action)
                     status = "booked" if random.random() < 0.80 else "vacant"
                 else:
-                    # Weekday mornings: Moderate fill rate (0.35 - 0.60)
                     historical_fill_rate = round(float(np.clip(np.random.normal(0.48, 0.06), 0.35, 0.60)), 2)
                     tags = "weekday, regular"
                     status = "vacant" if random.random() < 0.50 else "booked"
@@ -208,28 +197,20 @@ def main():
     slots_df = generate_slots()
     segments_df = generate_segments()
 
-    # Ensure data/ directory exists
     DATA_DIR.mkdir(parents=True, exist_ok=True)
 
-    # Save to both data/ directory and project root directory for maximum accessibility
-    data_slots_path = DATA_DIR / "slots.csv"
-    data_segments_path = DATA_DIR / "customer_segments.csv"
-    root_slots_path = BASE_DIR / "slots.csv"
-    root_segments_path = BASE_DIR / "customer_segments.csv"
+    slots_path = DATA_DIR / "slots.csv"
+    segments_path = DATA_DIR / "customer_segments.csv"
+    log_path = DATA_DIR / "booking_log.csv"
 
-    slots_df.to_csv(data_slots_path, index=False)
-    segments_df.to_csv(data_segments_path, index=False)
-    slots_df.to_csv(root_slots_path, index=False)
-    segments_df.to_csv(root_segments_path, index=False)
+    slots_df.to_csv(slots_path, index=False)
+    segments_df.to_csv(segments_path, index=False)
 
-    # Initialize booking_log.csv in both locations if not already present
-    log_headers = "slot_id,decision,discount_pct,reasoning,segment_notified,source,timestamp\n"
-    for log_path in [DATA_DIR / "booking_log.csv", BASE_DIR / "booking_log.csv"]:
-        if not log_path.exists() or log_path.stat().st_size == 0:
-            with open(log_path, "w", encoding="utf-8") as f:
-                f.write(log_headers)
+    if not log_path.exists() or log_path.stat().st_size == 0:
+        log_headers = "slot_id,decision,discount_pct,reasoning,segment_notified,source,timestamp\n"
+        with open(log_path, "w", encoding="utf-8") as f:
+            f.write(log_headers)
 
-    # Calculate and print summary metrics
     total_slots = len(slots_df)
     vacant_slots = int((slots_df["status"] == "vacant").sum())
     booked_slots = int((slots_df["status"] == "booked").sum())
@@ -253,7 +234,7 @@ def main():
     )
 
     print("=" * 60)
-    print("DATASET GENERATION SUMMARY")
+    print("DATASET GENERATION SUMMARY (data_layer)")
     print("=" * 60)
     print(f"Total slots:                         {total_slots}")
     print(f"Vacant slots:                        {vacant_slots}")
@@ -265,12 +246,9 @@ def main():
     print(f"Customer segments created:           {len(segments_df)}")
     print("=" * 60)
     print("Generated files:")
-    print(f" - {data_slots_path}")
-    print(f" - {data_segments_path}")
-    print(f" - {root_slots_path}")
-    print(f" - {root_segments_path}")
-    print(f" - {DATA_DIR / 'booking_log.csv'}")
-    print(f" - {BASE_DIR / 'booking_log.csv'}")
+    print(f" - {slots_path}")
+    print(f" - {segments_path}")
+    print(f" - {log_path}")
 
 
 if __name__ == "__main__":

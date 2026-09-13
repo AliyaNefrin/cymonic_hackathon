@@ -1,6 +1,6 @@
 slot_id,turf_name,sport,date,day_of_week,time_slot,lead_time_hrs,base_price,cost_to_operate,historical_fill_rate,status,tags
 S1001,Apex Arena,Football,2026-09-14,Monday,08:00-09:00,6,1000.0,360.0,0.51,booked,"weekday, regular"
-S1002,Apex Arena,Football,2026-09-14,Monday,09:00-10:00,4,1200.0,470.0,0.47,booked,"weekday, regular"
+S1002,Apex Arena,Football,2026-09-14,Monday,09:00-10:00,4,1200.0,470.0,0.47,vacant,"weekday, regular"
 S1003,Apex Arena,Football,2026-09-14,Monday,14:00-15:00,72,1150.0,470.0,0.33,vacant,"weekday, low-demand, afternoon, low-fill"
 S1004,Apex Arena,Cricket,2026-09-14,Monday,20:00-21:00,18,1200.0,470.0,0.92,vacant,"weekday, peak"
 S1005,Velocity Turf,Basketball,2026-09-14,Monday,08:00-09:00,24,800.0,260.0,0.47,vacant,"weekday, regular"
